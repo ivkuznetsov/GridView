@@ -21,7 +21,7 @@ GridView { snapshot in
 } 
 ```
 
-The custom view can be added to the snapshot:
+A custom view can be added to the snapshot:
 ```swift
 snapshot.add(SomeView())
 snapshot.add(SomeView(), staticHeight: 100)
@@ -42,7 +42,7 @@ GridView(emptyState: emptyState) { snapshot in
 } 
 ```
                 
-Refresh support:
+Refresh support. If refresh operation closure is supplied a UIRefreshControl will be added:
 ```swift
 GridView(refresh: { await refreshOperation() }) { snapshot in
     snapshot.addSection(models, fill: { 
