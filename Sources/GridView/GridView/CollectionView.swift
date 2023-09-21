@@ -5,18 +5,27 @@
 #if os(iOS)
 import UIKit
 
-public typealias PlatformCollectionLayout = UICollectionViewCompositionalLayout
+public typealias PlatformCollectionCompositionLayout = UICollectionViewCompositionalLayout
+public typealias PlatformCollectionLayout = UICollectionViewFlowLayout
 public typealias PlatformCollectionView = UICollectionView
 public typealias PlatformCollectionCell = UICollectionViewCell
 #else
 import AppKit
 
-public typealias PlatformCollectionLayout = NSCollectionViewCompositionalLayout
+public typealias PlatformCollectionCompositionLayout = NSCollectionViewCompositionalLayout
+public typealias PlatformCollectionLayout = NSCollectionViewFlowLayout
 public typealias PlatformCollectionView = NSCollectionView
 public typealias PlatformCollectionCell = NSCollectionViewItem
 #endif
 
-final class CollectionViewLayout: PlatformCollectionLayout {
+final class CollectionViewCompositionLayout: PlatformCollectionCompositionLayout {
+    
+    override func shouldInvalidateLayout(forBoundsChange newBounds: CGRect) -> Bool {
+        collectionView?.bounds.size ?? newBounds.size != newBounds.size
+    }
+}
+
+final class CollectionViewFlowLayout: PlatformCollectionLayout {
     
     override func shouldInvalidateLayout(forBoundsChange newBounds: CGRect) -> Bool {
         collectionView?.bounds.size ?? newBounds.size != newBounds.size
@@ -38,6 +47,12 @@ public final class CollectionView: PlatformCollectionView {
         setup()
     }
     
+    struct UpdateTransaction {
+        let animated: Bool
+    }
+    
+    var transaction: UpdateTransaction?
+    
     private func setup() {
         canCancelContentTouches = true
         delaysContentTouches = false
@@ -47,19 +62,35 @@ public final class CollectionView: PlatformCollectionView {
         showsHorizontalScrollIndicator = false
     }
     
-    public override var bounds: CGRect {
+    public override var contentSize: CGSize {
         didSet {
-            if bounds.height != oldValue.height, attachedContentToTheBottom {
-                let offset = oldValue.height - frame.height
-                
-                if offset > 0 {
-                    var contentOffset = self.contentOffset
-                    contentOffset.y += offset
-                    contentOffset.y = min(contentOffset.y, max(0, contentSize.height - bounds.size.height))
-                    self.contentOffset = contentOffset
-                }
+            if attachedContentToTheBottom, transaction?.animated == false && oldValue.height != contentSize.height {
+                let resultOffset = contentOffset.y + (contentSize.height - oldValue.height)
+                let offset = CGPoint(x: contentOffset.x, y: max(0, min(resultOffset, contentSize.height - frame.size.height)))
+                setContentOffset(offset, animated: false)
             }
         }
+    }
+    
+    private func update(frame: CGRect, oldValue: CGRect) {
+        if frame.height != oldValue.height, attachedContentToTheBottom {
+            let offset = oldValue.height - frame.height
+            
+            if offset > 0 {
+                var contentOffset = self.contentOffset
+                contentOffset.y += offset
+                contentOffset.y = min(contentOffset.y, max(0, contentSize.height - frame.size.height))
+                self.contentOffset = contentOffset
+            }
+        }
+    }
+    
+    public override var bounds: CGRect {
+        didSet { update(frame: bounds, oldValue: oldValue) }
+    }
+    
+    public override var frame: CGRect {
+        didSet { update(frame: bounds, oldValue: oldValue) }
     }
     
     public override func touchesShouldCancel(in view: UIView) -> Bool {
