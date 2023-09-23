@@ -7,14 +7,20 @@ import Foundation
 import SwiftUI
 import UIKit
 
-public struct ListView: View {
+public struct ListView: View, Equatable {
+    
+    public static func == (lhs: ListView, rhs: ListView) -> Bool {
+        lhs.reuseId == rhs.reuseId
+    }
     
     @StateObject private var state = ListState()
     
+    private let reuseId: String
     private let parameters: Parameters<ListSnapshot, ListState>
     private let emptyState: EmptyState?
     
-    public init(setup: ((ListState)->())? = nil,
+    public init(reuseId: String = UUID().uuidString,
+                setup: ((ListState)->())? = nil,
                 emptyState: EmptyState? = nil,
                 animateChanges: Bool = true,
                 snapshot: (ListSnapshot)->()) {
@@ -24,6 +30,7 @@ public struct ListView: View {
                            animateChanges: animateChanges,
                            setup: setup)
         self.emptyState = emptyState
+        self.reuseId = reuseId
     }
     
     public var body: some View {

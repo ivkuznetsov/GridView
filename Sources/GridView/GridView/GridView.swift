@@ -21,14 +21,20 @@ public typealias PlatformCollectionDataSource = NSCollectionViewDiffableDataSour
 protocol PrefetchCollectionProtocol { }
 #endif
 
-public struct GridView: View {
+public struct GridView: View, Equatable {
+    
+    public static func == (lhs: GridView, rhs: GridView) -> Bool {
+        lhs.reuseId == rhs.reuseId
+    }
     
     @StateObject private var state = GridState()
     
+    private let reuseId: String
     private let parameters: Parameters<CollectionSnapshot, GridState>
     private let emptyState: EmptyState?
     
-    public init(setup: ((GridState)->())? = nil,
+    public init(reuseId: String = UUID().uuidString,
+                setup: ((GridState)->())? = nil,
                 emptyState: EmptyState? = nil,
                 animateChanges: Bool = true,
                 snapshot: (CollectionSnapshot)->()) {
@@ -37,6 +43,7 @@ public struct GridView: View {
         parameters = .init(snapshot: currentSnapshot,
                            animateChanges: animateChanges,
                            setup: setup)
+        self.reuseId = reuseId
         self.emptyState = emptyState
     }
     
