@@ -85,6 +85,7 @@ public final class GridState: BaseState<CollectionView>, PlatformCollectionDeleg
     
     public let storage = Storage()
     public let dataSource: PlatformCollectionDataSource
+    public var configureLayout: ((PlatformLayout)->())?
     
     public init() {
         #if os(iOS)
@@ -139,6 +140,7 @@ public final class GridState: BaseState<CollectionView>, PlatformCollectionDeleg
             view.collectionViewLayout = layout
             #endif
         }
+        configureLayout?(view.collectionViewLayout)
     }
     
     public func set(_ snapshot: CollectionSnapshot, animated: Bool = false) async {

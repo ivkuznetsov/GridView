@@ -5,6 +5,7 @@
 #if os(iOS)
 import UIKit
 
+public typealias PlatformLayout = UICollectionViewLayout
 public typealias PlatformCollectionCompositionLayout = UICollectionViewCompositionalLayout
 public typealias PlatformCollectionLayout = UICollectionViewFlowLayout
 public typealias PlatformCollectionView = UICollectionView
@@ -12,6 +13,7 @@ public typealias PlatformCollectionCell = UICollectionViewCell
 #else
 import AppKit
 
+public typealias PlatformLayout = NSCollectionViewLayout
 public typealias PlatformCollectionCompositionLayout = NSCollectionViewCompositionalLayout
 public typealias PlatformCollectionLayout = NSCollectionViewFlowLayout
 public typealias PlatformCollectionView = NSCollectionView
