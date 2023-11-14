@@ -82,8 +82,8 @@ public final class CollectionSnapshot: Snapshot {
         }))))
     }
     
-    public func add<T: View>(_ view: T, staticSize: @escaping (_ width: CGFloat)->CGSize) {
-        addSection([view.inContainer()], section: .init(ViewContainer.self, fill: {
+    public func add<T: View>(_ view: T, id: String? = nil, staticSize: @escaping (_ width: CGFloat)->CGSize) {
+        addSection([view.inContainer(id: id)], section: .init(ViewContainer.self, fill: {
             $1.contentConfiguration = $0.configuration
         }, reuseId: { $0.reuseId }, additions: .init(layout: .perItem({ _, width in staticSize(width) }))))
     }

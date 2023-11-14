@@ -60,7 +60,7 @@ public final class CollectionView: PlatformCollectionView {
         delaysContentTouches = false
         backgroundColor = .clear
         alwaysBounceVertical = true
-        contentInsetAdjustmentBehavior = .automatic
+        contentInsetAdjustmentBehavior = .always
         showsHorizontalScrollIndicator = false
     }
     
