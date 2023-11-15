@@ -114,7 +114,7 @@ public final class CollectionView: PlatformCollectionView {
 
 public extension PlatformCollectionView {
     
-    static var cellsKey = "cellsKey"
+    static var cellsKey = 0
     
     #if os(iOS)
     private var registeredCells: Set<String> {

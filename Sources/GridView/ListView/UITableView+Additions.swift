@@ -7,7 +7,7 @@ import UIKit
 
 public extension UITableView {
     
-    static var cellsKey = "cellsKey"
+    static var cellsKey = 0
     
     private var registeredCells: Set<String> {
         get { objc_getAssociatedObject(self, &UITableView.cellsKey) as? Set<String> ?? Set() }
