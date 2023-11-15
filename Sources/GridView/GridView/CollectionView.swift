@@ -22,14 +22,6 @@ public typealias PlatformCollectionCell = NSCollectionViewItem
 
 final class CollectionViewCompositionLayout: PlatformCollectionCompositionLayout {
     
-    override func invalidationContext(forBoundsChange newBounds: CGRect) -> UICollectionViewLayoutInvalidationContext {
-        let context = super.invalidationContext(forBoundsChange: newBounds) as! UICollectionViewFlowLayoutInvalidationContext
-        if let collectionView = collectionView {
-            context.invalidateFlowLayoutDelegateMetrics = collectionView.bounds.size != newBounds.size
-        }
-        return context
-    }
-    
     override func shouldInvalidateLayout(forBoundsChange newBounds: CGRect) -> Bool {
         collectionView?.bounds.size ?? newBounds.size != newBounds.size
     }
@@ -38,8 +30,8 @@ final class CollectionViewCompositionLayout: PlatformCollectionCompositionLayout
 final class CollectionViewFlowLayout: PlatformCollectionLayout {
     
     override func invalidationContext(forBoundsChange newBounds: CGRect) -> UICollectionViewLayoutInvalidationContext {
-        let context = super.invalidationContext(forBoundsChange: newBounds) as! UICollectionViewFlowLayoutInvalidationContext
-        if let collectionView = collectionView {
+        let context = super.invalidationContext(forBoundsChange: newBounds)
+        if let collectionView = collectionView, let context = context as? UICollectionViewFlowLayoutInvalidationContext {
             context.invalidateFlowLayoutDelegateMetrics = collectionView.bounds.size != newBounds.size
         }
         return context
