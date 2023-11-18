@@ -66,7 +66,7 @@ public extension NSCollectionLayoutSection {
     
     static func horizontalGrid(size: CGSize, spacing: CGFloat = 15) -> NSCollectionLayoutSection {
         let groupSize = NSCollectionLayoutSize(widthDimension: .absolute(size.width),
-                                               heightDimension: .absolute(size.width))
+                                               heightDimension: .absolute(size.height))
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [.item])
         let section = NSCollectionLayoutSection(group: group)
         section.orthogonalScrollingBehavior = .continuous
