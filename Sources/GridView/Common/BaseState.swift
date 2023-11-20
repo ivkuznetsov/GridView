@@ -33,6 +33,7 @@ public class BaseState<ScrollView: UIScrollView>: NSObject, PlatformScrollDelega
     private var performedRefresh = false
     
     public var didScroll: ((_ offset: CGPoint)->())?
+    public var didDrag: ((_ dragging: Bool)->())?
     public var didSet: (()->())?
     
     init(view: ScrollView) {
@@ -58,7 +59,12 @@ public class BaseState<ScrollView: UIScrollView>: NSObject, PlatformScrollDelega
         endDecelerating()
     }
 
+    public func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        didDrag?(true)
+    }
+    
     @objc public func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        didDrag?(false)
         if !decelerate { endDecelerating() }
     }
 
