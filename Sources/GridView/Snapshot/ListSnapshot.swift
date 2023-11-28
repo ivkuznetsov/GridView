@@ -20,6 +20,34 @@ public final class ListSnapshot: Snapshot {
         
         let height: Height
         var sideActions: ((AnyHashable)->[UIContextualAction])? = nil
+        
+        public struct Move {
+
+            public enum Destination {
+                case perSection
+                case custom((_ from: IndexPath, _ proposed: IndexPath)->IndexPath)
+            }
+            
+            let destination: Destination
+            let commit: (_ from: IndexPath, _ to: IndexPath)->()
+            
+            public init(destination: Destination = .perSection,
+                        commit: @escaping (_ from: IndexPath, _ to: IndexPath) -> Void) {
+                self.destination = destination
+                self.commit = commit
+            }
+            
+            public static func perSection<T: Hashable>(_ array: Binding<[T]>) -> Move {
+                .init { from, to in
+                    var value = array.wrappedValue
+                    value.move(fromOffsets: .init(integer: from.row), toOffset: from.row < to.row ? (to.row + 1) : to.row)
+                    array.wrappedValue = value
+                }
+            }
+        }
+        
+        var move: Move? = nil
+        var customize: ((AnyHashable, UITableViewCell)->())?
     }
     
     public let data = SectionsContainer<S>()
@@ -36,20 +64,28 @@ public final class ListSnapshot: Snapshot {
     
     public func addSection<Item: Hashable, Content: SwiftUI.View>(_ items: [Item],
                                                                   fill: @escaping (Item)-> Content,
+                                                                  customize: ((Item, UITableViewCell)->())? = nil,
                                                                   sideActions: ((Item)->[UIContextualAction])? = nil,
+                                                                  move: CellAdditions.Move? = nil,
                                                                   estimatedHeight: @escaping (Item)->CGFloat = { _ in 150 }) {
         addSection(items, fill: fill,
                    additions: .init(height: .automatic(estimated: { estimatedHeight($0 as! Item) }),
-                                    sideActions: sideActions == nil ? nil : { sideActions!($0 as! Item) }))
+                                    sideActions: sideActions == nil ? nil : { sideActions!($0 as! Item) },
+                                    move: move,
+                                    customize: customize == nil ? nil : { customize!($0 as! Item, $1) }))
     }
     
     public func addSection<Item: Hashable, Content: SwiftUI.View>(_ items: [Item],
                                                                   fill: @escaping (Item)-> Content,
+                                                                  customize: ((Item, UITableViewCell)->())? = nil,
                                                                   sideActions: ((Item)->[UIContextualAction])? = nil,
+                                                                  move: CellAdditions.Move? = nil,
                                                                   height: @escaping (Item)->CGFloat) {
         addSection(items, fill: fill,
                    additions: .init(height: .fixed({ height($0 as! Item) }),
-                                    sideActions: sideActions == nil ? nil : { sideActions!($0 as! Item) }))
+                                    sideActions: sideActions == nil ? nil : { sideActions!($0 as! Item) },
+                                    move: move,
+                                    customize: customize == nil ? nil : { customize!($0 as! Item, $1) }))
     }
     
     public func add<T: View>(_ view: T, staticHeight: CGFloat) {
@@ -69,6 +105,7 @@ public final class ListSnapshot: Snapshot {
             } else {
                 cell.contentConfiguration = UIHostingConfigurationBackport { fill(item).ignoresSafeArea() }.margins(.all, 0)
             }
+            additions.customize?(item, cell)
         }, reuseId: { _ in reuseId }, additions: additions))
     }
 }
