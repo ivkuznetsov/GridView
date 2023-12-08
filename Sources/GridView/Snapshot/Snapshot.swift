@@ -9,22 +9,65 @@ import AppKit
 #endif
 import SwiftUI
 
+public struct Move {
+
+    public enum Destination {
+        case perSection
+        case custom((_ from: IndexPath, _ proposed: IndexPath)->IndexPath)
+    }
+    
+    let destination: Destination
+    let commit: (_ from: IndexPath, _ to: IndexPath)->()
+    
+    public init(destination: Destination = .perSection,
+                commit: @escaping (_ from: IndexPath, _ to: IndexPath) -> Void) {
+        self.destination = destination
+        self.commit = commit
+    }
+    
+    public static func perSection<T: Hashable>(_ array: Binding<[T]>) -> Move {
+        .init { from, to in
+            var value = array.wrappedValue
+            value.move(fromOffsets: .init(integer: from.row), toOffset: from.row < to.row ? (to.row + 1) : to.row)
+            array.wrappedValue = value
+        }
+    }
+    
+    func proposedDestination(source: IndexPath, proposed: IndexPath, numberOfItemsInSection: (Int)->Int) -> IndexPath {
+        switch destination {
+        case .custom(let custom): return custom(source, proposed)
+        case .perSection:
+            if source.section != proposed.section {
+                var row = 0
+                if source.section < proposed.section {
+                    row = numberOfItemsInSection(source.section) - 1
+                }
+                return IndexPath(row: row, section: source.section)
+            }
+            return proposed
+        }
+    }
+}
+
 public final class Section<Cell, Additions> {
     
     let fill: (AnyHashable, Cell)->()
     let typeCheck: (AnyHashable)->Bool
     let reuseId: (AnyHashable)->String
     let additions: Additions
+    var move: Move? = nil
     
     init<Item: Hashable>(_ item: Item.Type,
                          fill: @escaping (Item, Cell)->(),
                          reuseId: @escaping (Item)->String,
-                         additions: Additions) {
+                         additions: Additions,
+                         move: Move? = nil) {
         
         self.fill = { fill($0 as! Item, $1) }
         self.typeCheck = { $0 is Item }
         self.reuseId = { reuseId($0 as! Item) }
         self.additions = additions
+        self.move = move
     }
 }
 

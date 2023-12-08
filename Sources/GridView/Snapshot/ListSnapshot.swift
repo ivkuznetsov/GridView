@@ -21,32 +21,6 @@ public final class ListSnapshot: Snapshot {
         let height: Height
         var sideActions: ((AnyHashable)->[UIContextualAction])? = nil
         
-        public struct Move {
-
-            public enum Destination {
-                case perSection
-                case custom((_ from: IndexPath, _ proposed: IndexPath)->IndexPath)
-            }
-            
-            let destination: Destination
-            let commit: (_ from: IndexPath, _ to: IndexPath)->()
-            
-            public init(destination: Destination = .perSection,
-                        commit: @escaping (_ from: IndexPath, _ to: IndexPath) -> Void) {
-                self.destination = destination
-                self.commit = commit
-            }
-            
-            public static func perSection<T: Hashable>(_ array: Binding<[T]>) -> Move {
-                .init { from, to in
-                    var value = array.wrappedValue
-                    value.move(fromOffsets: .init(integer: from.row), toOffset: from.row < to.row ? (to.row + 1) : to.row)
-                    array.wrappedValue = value
-                }
-            }
-        }
-        
-        var move: Move? = nil
         var customize: ((AnyHashable, UITableViewCell)->())?
     }
     
@@ -66,12 +40,12 @@ public final class ListSnapshot: Snapshot {
                                                                   fill: @escaping (Item)-> Content,
                                                                   customize: ((Item, UITableViewCell)->())? = nil,
                                                                   sideActions: ((Item)->[UIContextualAction])? = nil,
-                                                                  move: CellAdditions.Move? = nil,
+                                                                  move: Move? = nil,
                                                                   estimatedHeight: @escaping (Item)->CGFloat = { _ in 150 }) {
         addSection(items, fill: fill,
+                   move: move,
                    additions: .init(height: .automatic(estimated: { estimatedHeight($0 as! Item) }),
                                     sideActions: sideActions == nil ? nil : { sideActions!($0 as! Item) },
-                                    move: move,
                                     customize: customize == nil ? nil : { customize!($0 as! Item, $1) }))
     }
     
@@ -79,12 +53,12 @@ public final class ListSnapshot: Snapshot {
                                                                   fill: @escaping (Item)-> Content,
                                                                   customize: ((Item, UITableViewCell)->())? = nil,
                                                                   sideActions: ((Item)->[UIContextualAction])? = nil,
-                                                                  move: CellAdditions.Move? = nil,
+                                                                  move: Move? = nil,
                                                                   height: @escaping (Item)->CGFloat) {
         addSection(items, fill: fill,
+                   move: move,
                    additions: .init(height: .fixed({ height($0 as! Item) }),
                                     sideActions: sideActions == nil ? nil : { sideActions!($0 as! Item) },
-                                    move: move,
                                     customize: customize == nil ? nil : { customize!($0 as! Item, $1) }))
     }
     
@@ -95,8 +69,9 @@ public final class ListSnapshot: Snapshot {
     }
     
     private func addSection<Item: Hashable, Content: SwiftUI.View>(_ items: [Item],
-                                                           fill: @escaping (Item)-> Content,
-                                                           additions: CellAdditions) {
+                                                                   fill: @escaping (Item)-> Content,
+                                                                   move: Move?,
+                                                                   additions: CellAdditions) {
         let reuseId = String(describing: Item.self)
         
         addSection(items, section: .init(Item.self, fill: { item, cell in
@@ -106,7 +81,7 @@ public final class ListSnapshot: Snapshot {
                 cell.contentConfiguration = UIHostingConfigurationBackport { fill(item).ignoresSafeArea() }.margins(.all, 0)
             }
             additions.customize?(item, cell)
-        }, reuseId: { _ in reuseId }, additions: additions))
+        }, reuseId: { _ in reuseId }, additions: additions, move: move))
     }
 }
 #endif

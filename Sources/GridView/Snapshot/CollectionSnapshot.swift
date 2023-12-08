@@ -59,19 +59,21 @@ public final class CollectionSnapshot: Snapshot {
     }
     
     public func addSection<Item: Hashable, Content: SwiftUI.View>(_ items: [Item],
-                                             fill: @escaping (Item)-> Content,
-                                             prefetch: ((Item)->PrefetchCancel)? = nil,
-                                             layout: @escaping (NSCollectionLayoutEnvironment)->NSCollectionLayoutSection = { .grid($0) }) {
+                                                                  fill: @escaping (Item)-> Content,
+                                                                  prefetch: ((Item)->PrefetchCancel)? = nil,
+                                                                  move: Move? = nil,
+                                                                  layout: @escaping (NSCollectionLayoutEnvironment)->NSCollectionLayoutSection = { .grid($0) }) {
         addSection(items, fill: fill, additions: .init(layout: .autosizing(layout),
-                                                       prefetch: prefetch == nil ? nil : { prefetch!($0 as! Item) }))
+                                                       prefetch: prefetch == nil ? nil : { prefetch!($0 as! Item) }), move: move)
     }
     
     public func addSection<Item: Hashable, Content: SwiftUI.View>(_ items: [Item],
-                                             fill: @escaping (Item)-> Content,
-                                             prefetch: ((Item)->PrefetchCancel)? = nil,
-                                             itemSize: @escaping (Item, _ width: CGFloat)->CGSize) {
+                                                                  fill: @escaping (Item)-> Content,
+                                                                  prefetch: ((Item)->PrefetchCancel)? = nil,
+                                                                  move: Move? = nil,
+                                                                  itemSize: @escaping (Item, _ width: CGFloat)->CGSize) {
         addSection(items, fill: fill, additions: .init(layout: .perItem({ itemSize($0 as! Item, $1) }),
-                                                       prefetch: prefetch == nil ? nil : { prefetch!($0 as! Item) }))
+                                                       prefetch: prefetch == nil ? nil : { prefetch!($0 as! Item) }), move: move)
     }
     
     public func add<T: View>(_ view: T, staticHeight: CGFloat) {
@@ -89,8 +91,8 @@ public final class CollectionSnapshot: Snapshot {
     }
     
     private func addSection<Item: Hashable, Content: SwiftUI.View>(_ items: [Item],
-                                             fill: @escaping (Item)-> Content,
-                                             additions: CellAdditions) {
+                                                                   fill: @escaping (Item)-> Content,
+                                                                   additions: CellAdditions, move: Move?) {
         let reuseId = String(describing: Item.self)
         
         addSection(items, section: .init(Item.self, fill: { item, cell in
@@ -99,6 +101,6 @@ public final class CollectionSnapshot: Snapshot {
             } else {
                 cell.contentConfiguration = UIHostingConfigurationBackport { fill(item).ignoresSafeArea() }.margins(.all, 0)
             }
-        }, reuseId: { _ in reuseId }, additions: additions))
+        }, reuseId: { _ in reuseId }, additions: additions, move: move))
     }
 }

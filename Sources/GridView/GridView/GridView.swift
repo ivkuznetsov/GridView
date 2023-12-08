@@ -57,6 +57,43 @@ public struct GridView: View, Equatable {
 
 public final class GridState: BaseState<CollectionView>, PlatformCollectionDelegate, PrefetchCollectionProtocol {
     
+    public final class DataSource: PlatformCollectionDataSource {
+        
+        private let storage: Storage
+        
+        public override func collectionView(_ collectionView: UICollectionView, canMoveItemAt indexPath: IndexPath) -> Bool {
+            storage.snapshot.info(indexPath)?.section.move != nil
+        }
+        
+        init(view: CollectionView, storage: Storage) {
+            self.storage = storage
+            super.init(collectionView: view, cellProvider: { [storage, view] in
+                storage.cell(view: view, indexPath: $1, item: $2)
+            })
+        }
+        
+        public override func collectionView(_ collectionView: UICollectionView, moveItemAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
+            var snapshot = self.snapshot()
+            if let from = itemIdentifier(for: sourceIndexPath) {
+                if let to = itemIdentifier(for: destinationIndexPath) {
+                    guard from != to else { return }
+                    
+                    if sourceIndexPath.row > destinationIndexPath.row {
+                        snapshot.moveItem(from, beforeItem: to)
+                    } else {
+                        snapshot.moveItem(from, afterItem: to)
+                    }
+                } else {
+                    snapshot.deleteItems([from])
+                    snapshot.appendItems([from], toSection: snapshot.sectionIdentifiers[destinationIndexPath.section])
+                }
+            }
+            apply(snapshot, animatingDifferences: false, completion: {
+                self.storage.snapshot.info(sourceIndexPath)?.section.move?.commit(sourceIndexPath, destinationIndexPath)
+            })
+        }
+    }
+    
     @MainActor
     public final class Storage {
         public internal(set) var oldSnapshot: CollectionSnapshot?
@@ -84,7 +121,7 @@ public final class GridState: BaseState<CollectionView>, PlatformCollectionDeleg
     }
     
     public let storage = Storage()
-    public let dataSource: PlatformCollectionDataSource
+    public let dataSource: DataSource
     public var configureLayout: ((PlatformLayout)->())?
     
     public init() {
@@ -102,12 +139,37 @@ public final class GridState: BaseState<CollectionView>, PlatformCollectionDeleg
         view.backgroundColors = [.clear]
         #endif
         
-        dataSource = PlatformCollectionDataSource(collectionView: view) { [storage, view] in
-            storage.cell(view: view, indexPath: $1, item: $2)
-        }
+        dataSource = .init(view: view, storage: storage)
         super.init(view: view)
+        
+        #if os(iOS)
+        reordering.minimumPressDuration = 0
+        view.addGestureRecognizer(reordering)
+        reordering.addTarget(self, action: #selector(handleLongGesture(gesture:)))
+        reordering.isEnabled = false
+        #endif
     }
     
+    #if os(iOS)
+    public let reordering = UILongPressGestureRecognizer()
+    
+    @objc private func handleLongGesture(gesture: UILongPressGestureRecognizer) {
+        switch(gesture.state) {
+            
+        case .began:
+            if let indexPath = view.indexPathForItem(at: gesture.location(in: view)) {
+                view.beginInteractiveMovementForItem(at: indexPath)
+            }
+        case .changed:
+            view.updateInteractiveMovementTargetPosition(gesture.location(in: view))
+        case .ended:
+            view.endInteractiveMovement()
+        default:
+            view.cancelInteractiveMovement()
+        }
+    }
+    #endif
+
     private func reloadLayout(_ snapshot: CollectionSnapshot) {
         switch snapshot.layout {
         case .perItem:
@@ -149,7 +211,12 @@ public final class GridState: BaseState<CollectionView>, PlatformCollectionDeleg
             self.view.transaction = .init(animated: resultAnimation)
             self.storage.update(snapshot)
             self.reloadLayout(snapshot)
-            await self.dataSource.apply(snapshot.data.snapshot, animatingDifferences: resultAnimation)
+            
+            await withCheckedContinuation { continuation in // async apply function is non isolated and posts main thread checker errors
+                self.dataSource.apply(snapshot.data.snapshot, animatingDifferences: resultAnimation) {
+                    continuation.resume()
+                }
+            }
             self.view.transaction = nil
             self.didSet?()
         }
@@ -189,6 +256,14 @@ public final class GridState: BaseState<CollectionView>, PlatformCollectionDeleg
 
     public func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
         cancelPrefetch(indexPaths)
+    }
+    
+    public func collectionView(_ collectionView: UICollectionView, targetIndexPathForMoveOfItemFromOriginalIndexPath originalIndexPath: IndexPath, atCurrentIndexPath currentIndexPath: IndexPath, toProposedIndexPath proposedIndexPath: IndexPath) -> IndexPath {
+        storage.snapshot.info(currentIndexPath)?.section.move?.proposedDestination(source: currentIndexPath,
+                                                                                  proposed: proposedIndexPath,
+                                                                                  numberOfItemsInSection: {
+            dataSource.collectionView(collectionView, numberOfItemsInSection: $0)
+        }) ?? proposedIndexPath
     }
     
     private func cancelPrefetch(_ indexPaths: [IndexPath]) {

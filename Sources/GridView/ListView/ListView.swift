@@ -55,7 +55,7 @@ public final class ListState: BaseState<UITableView>, UITableViewDelegate {
         }
         
         public override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-            storage.snapshot.info(indexPath)?.section.additions.move != nil
+            storage.snapshot.info(indexPath)?.section.move != nil
         }
         
         public override func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
@@ -75,7 +75,7 @@ public final class ListState: BaseState<UITableView>, UITableViewDelegate {
                 }
             }
             apply(snapshot, animatingDifferences: false, completion: {
-                self.storage.snapshot.info(sourceIndexPath)?.section.additions.move?.commit(sourceIndexPath, destinationIndexPath)
+                self.storage.snapshot.info(sourceIndexPath)?.section.move?.commit(sourceIndexPath, destinationIndexPath)
             })
         }
     }
@@ -184,21 +184,11 @@ public final class ListState: BaseState<UITableView>, UITableViewDelegate {
     public func tableView(_ tableView: UITableView, shouldIndentWhileEditingRowAt indexPath: IndexPath) -> Bool { false }
     
     public func tableView(_ tableView: UITableView, targetIndexPathForMoveFromRowAt sourceIndexPath: IndexPath, toProposedIndexPath proposedDestinationIndexPath: IndexPath) -> IndexPath {
-        if let move = storage.snapshot.info(sourceIndexPath)?.section.additions.move {
-            switch move.destination {
-            case .custom(let custom): return custom(sourceIndexPath, proposedDestinationIndexPath)
-            case .perSection:
-                if sourceIndexPath.section != proposedDestinationIndexPath.section {
-                    var row = 0
-                    if sourceIndexPath.section < proposedDestinationIndexPath.section {
-                        row = dataSource.tableView(tableView, numberOfRowsInSection: sourceIndexPath.section) - 1
-                    }
-                    return IndexPath(row: row, section: sourceIndexPath.section)
-                }
-                return proposedDestinationIndexPath
-            }
-        }
-        return proposedDestinationIndexPath
+        storage.snapshot.info(sourceIndexPath)?.section.move?.proposedDestination(source: sourceIndexPath,
+                                                                                  proposed: proposedDestinationIndexPath,
+                                                                                  numberOfItemsInSection: {
+            dataSource.tableView(tableView, numberOfRowsInSection: $0)
+        }) ?? proposedDestinationIndexPath
     }
 }
 
