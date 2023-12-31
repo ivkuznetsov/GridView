@@ -112,6 +112,21 @@ public final class CollectionView: PlatformCollectionView {
     #endif
 }
 
+public final class CollectionCell: PlatformCollectionCell {
+    
+    public var resizingAnimationEnabled = true
+    
+    public override func invalidateIntrinsicContentSize() {
+        if resizingAnimationEnabled {
+            super.invalidateIntrinsicContentSize()
+        } else {
+            UIView.performWithoutAnimation {
+                super.invalidateIntrinsicContentSize()
+            }
+        }
+    }
+}
+
 public extension PlatformCollectionView {
     
     static var cellsKey = 0
@@ -128,20 +143,20 @@ public extension PlatformCollectionView {
     }
     #endif
     
-    func createCell(reuseId: String, at indexPath: IndexPath) -> PlatformCollectionCell {
+    func createCell(reuseId: String, at indexPath: IndexPath) -> CollectionCell {
         
         if !registeredCells.contains(reuseId) {
             #if os(iOS)
-            register(PlatformCollectionCell.self, forCellWithReuseIdentifier: reuseId)
+            register(CollectionCell.self, forCellWithReuseIdentifier: reuseId)
             #else
-            register(PlatformCollectionCell.self, forItemWithIdentifier: NSUserInterfaceItemIdentifier(rawValue: reuseId))
+            register(CollectionCell.self, forItemWithIdentifier: NSUserInterfaceItemIdentifier(rawValue: reuseId))
             #endif
             registeredCells.insert(reuseId)
         }
         #if os(iOS)
-        return dequeueReusableCell(withReuseIdentifier: reuseId, for: indexPath)
+        return dequeueReusableCell(withReuseIdentifier: reuseId, for: indexPath) as! CollectionCell
         #else
-        return makeItem(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: reuseId), for: indexPath)
+        return makeItem(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: reuseId), for: indexPath) as! CollectionCell
         #endif
     }
     
