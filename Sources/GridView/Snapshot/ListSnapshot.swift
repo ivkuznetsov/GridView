@@ -19,6 +19,7 @@ public final class ListSnapshot: Snapshot {
         }
         
         let height: Height
+        var firstSideActionFullSwipe: Bool = false
         var sideActions: ((AnyHashable)->[UIContextualAction])? = nil
         
         var customize: ((AnyHashable, UITableViewCell)->())?
@@ -39,12 +40,14 @@ public final class ListSnapshot: Snapshot {
     public func addSection<Item: Hashable, Content: SwiftUI.View>(_ items: [Item],
                                                                   fill: @escaping (Item)-> Content,
                                                                   customize: ((Item, UITableViewCell)->())? = nil,
+                                                                  firstSideActionFullSwipe: Bool = false,
                                                                   sideActions: ((Item)->[UIContextualAction])? = nil,
                                                                   move: Move? = nil,
                                                                   estimatedHeight: @escaping (Item)->CGFloat = { _ in 150 }) {
         addSection(items, fill: fill,
                    move: move,
                    additions: .init(height: .automatic(estimated: { estimatedHeight($0 as! Item) }),
+                                    firstSideActionFullSwipe: firstSideActionFullSwipe,
                                     sideActions: sideActions == nil ? nil : { sideActions!($0 as! Item) },
                                     customize: customize == nil ? nil : { customize!($0 as! Item, $1) }))
     }
@@ -52,12 +55,14 @@ public final class ListSnapshot: Snapshot {
     public func addSection<Item: Hashable, Content: SwiftUI.View>(_ items: [Item],
                                                                   fill: @escaping (Item)-> Content,
                                                                   customize: ((Item, UITableViewCell)->())? = nil,
+                                                                  firstSideActionFullSwipe: Bool = false,
                                                                   sideActions: ((Item)->[UIContextualAction])? = nil,
                                                                   move: Move? = nil,
                                                                   height: @escaping (Item)->CGFloat) {
         addSection(items, fill: fill,
                    move: move,
                    additions: .init(height: .fixed({ height($0 as! Item) }),
+                                    firstSideActionFullSwipe: firstSideActionFullSwipe,
                                     sideActions: sideActions == nil ? nil : { sideActions!($0 as! Item) },
                                     customize: customize == nil ? nil : { customize!($0 as! Item, $1) }))
     }

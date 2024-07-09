@@ -171,7 +171,7 @@ public final class ListState: BaseState<UITableView>, UITableViewDelegate {
         if let info = storage.snapshot.info(indexPath),
            let actions = info.section.additions.sideActions?(info.item) {
             let configuration = UISwipeActionsConfiguration(actions: actions)
-            configuration.performsFirstActionWithFullSwipe = false
+            configuration.performsFirstActionWithFullSwipe = info.section.additions.firstSideActionFullSwipe
             return configuration
         }
         return nil
