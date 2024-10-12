@@ -43,14 +43,14 @@ public struct ListView: View, Equatable {
 
 public final class ListState: BaseState<UITableView>, UITableViewDelegate {
     
-    public final class DataSource: UITableViewDiffableDataSource<String, AnyHashable> {
+    public final class DataSource: UITableViewDiffableDataSource<String, DataSourceItem> {
         
         private let storage: Storage
         
         init(view: UITableView, storage: Storage) {
             self.storage = storage
             super.init(tableView: view, cellProvider: { [storage, view] in
-                storage.cell(view: view, indexPath: $1, item: $2)
+                storage.cell(view: view, indexPath: $1, item: $2.base)
             })
         }
         

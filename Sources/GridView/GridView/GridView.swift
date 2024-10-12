@@ -9,14 +9,14 @@ import SwiftUI
 import UIKit
 
 public typealias PlatformCollectionDelegate = UICollectionViewDelegateFlowLayout
-public typealias PlatformCollectionDataSource = UICollectionViewDiffableDataSource<String, AnyHashable>
+public typealias PlatformCollectionDataSource = UICollectionViewDiffableDataSource<String, DataSourceItem>
 
 protocol PrefetchCollectionProtocol: UICollectionViewDataSourcePrefetching { }
 #else
 import AppKit
 
 public typealias PlatformCollectionDelegate = NSCollectionViewDelegateFlowLayout
-public typealias PlatformCollectionDataSource = NSCollectionViewDiffableDataSource<String, AnyHashable>
+public typealias PlatformCollectionDataSource = NSCollectionViewDiffableDataSource<String, DataSourceItem>
 
 protocol PrefetchCollectionProtocol { }
 #endif
@@ -68,7 +68,7 @@ public final class GridState: BaseState<CollectionView>, PlatformCollectionDeleg
         init(view: CollectionView, storage: Storage) {
             self.storage = storage
             super.init(collectionView: view, cellProvider: { [storage, view] in
-                storage.cell(view: view, indexPath: $1, item: $2)
+                storage.cell(view: view, indexPath: $1, item: $2.base)
             })
         }
         

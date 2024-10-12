@@ -49,6 +49,14 @@ public struct Move {
     }
 }
 
+public struct DataSourceItem: @unchecked Sendable, Hashable {
+    public let base: AnyHashable
+    
+    init<T: Hashable>(_ base: T) {
+        self.base = base
+    }
+}
+
 public final class Section<Cell, Additions> {
     
     let fill: (AnyHashable, Cell)->()
@@ -74,7 +82,7 @@ public final class Section<Cell, Additions> {
 public final class SectionsContainer<Section> {
     var ids = Set<String>()
     var info: [Section] = []
-    public var snapshot = NSDiffableDataSourceSnapshot<String, AnyHashable>()
+    public var snapshot = NSDiffableDataSourceSnapshot<String, DataSourceItem>()
     
     func addNewSection<T: Hashable>(_ items: [T], section: Section) {
         let className = String(describing: T.self)
@@ -87,7 +95,7 @@ public final class SectionsContainer<Section> {
         ids.insert(sectionId)
         info.append(section)
         snapshot.appendSections([sectionId])
-        snapshot.appendItems(items, toSection: sectionId)
+        snapshot.appendItems(items.map { DataSourceItem($0) }, toSection: sectionId)
     }
 }
 
@@ -131,7 +139,7 @@ public extension Snapshot {
         if let section = data.info[safe: indexPath.section],
            let sectionId = data.snapshot.sectionIdentifiers[safe: indexPath.section],
            let item = data.snapshot.itemIdentifiers(inSection: sectionId)[safe: indexPath.item] {
-            return (section, item)
+            return (section, item.base)
         }
         return nil
     }
