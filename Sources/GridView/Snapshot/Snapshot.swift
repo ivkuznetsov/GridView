@@ -79,6 +79,7 @@ public final class Section<Cell, Additions> {
     }
 }
 
+@MainActor
 public final class SectionsContainer<Section> {
     var ids = Set<String>()
     var info: [Section] = []
@@ -107,6 +108,7 @@ public struct PrefetchCancel {
     }
 }
 
+@MainActor
 public protocol Snapshot {
     associatedtype Section
     

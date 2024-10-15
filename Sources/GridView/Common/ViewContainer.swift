@@ -29,7 +29,7 @@ public struct ViewContainer: Hashable {
 
 public extension View {
     
-    func inContainer(id: String? = nil) -> ViewContainer {
+    @MainActor func inContainer(id: String? = nil) -> ViewContainer {
         let id = String(describing: type(of: self)) + (id ?? "")
         return ViewContainer(id: id, view: self.id(id))
     }
