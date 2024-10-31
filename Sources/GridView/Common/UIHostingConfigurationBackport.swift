@@ -5,76 +5,47 @@
 #if os(iOS)
 import UIKit
 import SwiftUI
+import Combine
 
-struct UIHostingConfigurationBackport<Content, Background>: UIContentConfiguration where Content: View, Background: View {
+struct UIHostingConfigurationBackport<Content>: UIContentConfiguration where Content: View {
     let content: Content
-    let background: Background
     let margins: NSDirectionalEdgeInsets
     let minWidth: CGFloat?
     let minHeight: CGFloat?
-
-    init(@ViewBuilder content: () -> Content) where Background == EmptyView {
+    
+    init(@ViewBuilder content: () -> Content) {
         self.content = content()
-        background = .init()
         margins = .zero
         minWidth = nil
         minHeight = nil
     }
 
     init(content: Content,
-         background: Background,
          margins: NSDirectionalEdgeInsets,
          minWidth: CGFloat?,
          minHeight: CGFloat?) {
         self.content = content
-        self.background = background
         self.margins = margins
         self.minWidth = minWidth
         self.minHeight = minHeight
     }
     
-    func makeContentView() -> UIView & UIContentView {
-        return UIHostingContentViewBackport<Content, Background>(configuration: self)
-    }
+    func makeContentView() -> UIView & UIContentView { UIHostingContentViewBackport<Content>(configuration: self) }
 
-    func updated(for state: UIConfigurationState) -> UIHostingConfigurationBackport {
-        return self
-    }
+    func updated(for state: UIConfigurationState) -> UIHostingConfigurationBackport { self }
 
-    func background<S>(_ style: S) -> UIHostingConfigurationBackport<Content, _UIHostingConfigurationBackgroundViewBackport<S>> where S: ShapeStyle {
-        return UIHostingConfigurationBackport<Content, _UIHostingConfigurationBackgroundViewBackport<S>>(
+    func margins(_ insets: EdgeInsets) -> UIHostingConfigurationBackport<Content> {
+        return UIHostingConfigurationBackport<Content>(
             content: content,
-            background: .init(style: style),
-            margins: margins,
-            minWidth: minWidth,
-            minHeight: minHeight
-        )
-    }
-
-    func background<B>(@ViewBuilder content: () -> B) -> UIHostingConfigurationBackport<Content, B> where B: View {
-        return UIHostingConfigurationBackport<Content, B>(
-            content: self.content,
-            background: content(),
-            margins: margins,
-            minWidth: minWidth,
-            minHeight: minHeight
-        )
-    }
-
-    func margins(_ insets: EdgeInsets) -> UIHostingConfigurationBackport<Content, Background> {
-        return UIHostingConfigurationBackport<Content, Background>(
-            content: content,
-            background: background,
             margins: .init(insets),
             minWidth: minWidth,
             minHeight: minHeight
         )
     }
 
-    func margins(_ edges: Edge.Set = .all, _ length: CGFloat) -> UIHostingConfigurationBackport<Content, Background> {
-        return UIHostingConfigurationBackport<Content, Background>(
+    func margins(_ edges: Edge.Set = .all, _ length: CGFloat) -> UIHostingConfigurationBackport<Content> {
+        UIHostingConfigurationBackport<Content>(
             content: content,
-            background: background,
             margins: .init(
                 top: edges.contains(.top) ? length : margins.top,
                 leading: edges.contains(.leading) ? length : margins.leading,
@@ -86,10 +57,9 @@ struct UIHostingConfigurationBackport<Content, Background>: UIContentConfigurati
         )
     }
 
-    func minSize(width: CGFloat? = nil, height: CGFloat? = nil) -> UIHostingConfigurationBackport<Content, Background> {
-        return UIHostingConfigurationBackport<Content, Background>(
+    func minSize(width: CGFloat? = nil, height: CGFloat? = nil) -> UIHostingConfigurationBackport<Content> {
+        UIHostingConfigurationBackport<Content>(
             content: content,
-            background: background,
             margins: margins,
             minWidth: width,
             minHeight: height
@@ -97,8 +67,36 @@ struct UIHostingConfigurationBackport<Content, Background>: UIContentConfigurati
     }
 }
 
-final class UIHostingContentViewBackport<Content, Background>: UIView, UIContentView where Content: View, Background: View {
-    typealias HostingController = UIHostingController<ZStack<TupleView<(Background, Content)>>?>
+final class SizeObserver: ObservableObject {
+    @Published var size: CGSize?
+}
+
+struct HostingContent<Content: View>: View {
+    
+    let sizeObserver: SizeObserver
+    let content: Content
+    
+    var body: some View {
+        content.background(
+            GeometryReader { [weak sizeObserver] geometry in
+                Color.clear
+                    .onAppear {
+                        if sizeObserver?.size != geometry.size {
+                            sizeObserver?.size = geometry.size
+                        }
+                    }
+                    .onChange(of: geometry.size) { newSize in
+                        if sizeObserver?.size != newSize {
+                            sizeObserver?.size = newSize
+                        }
+                    }
+            }
+        )
+    }
+}
+
+final class UIHostingContentViewBackport<Content>: UIView, UIContentView where Content: View {
+    typealias HostingController = UIHostingController<HostingContent<Content>?>
     
     private let hostingController: HostingController = {
         let controller = HostingController(rootView: nil, ignoreSafeArea: true)
@@ -107,21 +105,26 @@ final class UIHostingContentViewBackport<Content, Background>: UIView, UIContent
         return controller
     }()
 
+    private let sizeObserver = SizeObserver()
+    
     var configuration: UIContentConfiguration {
         didSet {
-            if let configuration = configuration as? UIHostingConfigurationBackport<Content, Background> {
-                hostingController.rootView = ZStack {
-                    configuration.background
-                    configuration.content
-                }
+            if let configuration = configuration as? UIHostingConfigurationBackport<Content> {
+                hostingController.rootView = HostingContent(sizeObserver: sizeObserver, content: configuration.content)
                 directionalLayoutMargins = configuration.margins
             }
         }
     }
     
     override var intrinsicContentSize: CGSize {
+        if let size = sizeObserver.size {
+            print(size)
+            
+            return size
+        }
+        
         var intrinsicContentSize = super.intrinsicContentSize
-        if let configuration = configuration as? UIHostingConfigurationBackport<Content, Background> {
+        if let configuration = configuration as? UIHostingConfigurationBackport<Content> {
             if let width = configuration.minWidth {
                 intrinsicContentSize.width = max(intrinsicContentSize.width, width)
             }
@@ -132,6 +135,8 @@ final class UIHostingContentViewBackport<Content, Background>: UIView, UIContent
         return intrinsicContentSize
     }
 
+    private var observer: AnyCancellable?
+    
     init(configuration: UIContentConfiguration) {
         self.configuration = configuration
 
@@ -139,14 +144,21 @@ final class UIHostingContentViewBackport<Content, Background>: UIView, UIContent
     
         hostingController.view.translatesAutoresizingMaskIntoConstraints = false
       
+        addSubview(hostingController.view)
         leadingAnchor.constraint(equalTo: hostingController.view.leadingAnchor).isActive = true
         trailingAnchor.constraint(equalTo: hostingController.view.trailingAnchor).isActive = true
         topAnchor.constraint(equalTo: hostingController.view.topAnchor).isActive = true
         let constraint = bottomAnchor.constraint(equalTo: hostingController.view.bottomAnchor)
         constraint.priority = UILayoutPriority(999)
         constraint.isActive = true
-        addSubview(hostingController.view)
         layoutMargins = .zero
+        
+        observer = sizeObserver.$size.sink { [weak self] _ in
+            if let cell = self?.hostingController.view.superview?.superview as? UICollectionViewCell {
+                self?.hostingController.view.invalidateIntrinsicContentSize()
+                cell.invalidateIntrinsicContentSize()
+            }
+        }
     }
    
     @available(*, unavailable)
@@ -162,14 +174,6 @@ final class UIHostingContentViewBackport<Content, Background>: UIView, UIContent
             parentViewController?.addChild(hostingController)
             hostingController.didMove(toParent: parentViewController)
         }
-    }
-}
-
-struct _UIHostingConfigurationBackgroundViewBackport<S>: View where S: ShapeStyle {
-    let style: S
-
-    var body: some View {
-        Rectangle().fill(style)
     }
 }
 
