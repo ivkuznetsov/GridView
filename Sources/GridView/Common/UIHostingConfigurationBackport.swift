@@ -157,6 +157,9 @@ final class UIHostingContentViewBackport<Content>: UIView, UIContentView where C
             if let cell = self?.hostingController.view.superview?.superview as? UICollectionViewCell {
                 self?.hostingController.view.invalidateIntrinsicContentSize()
                 cell.invalidateIntrinsicContentSize()
+            } else if let cell = self?.hostingController.view.superview?.superview as? UITableViewCell {
+                self?.hostingController.view.invalidateIntrinsicContentSize()
+                cell.invalidateIntrinsicContentSize()
             }
         }
     }
