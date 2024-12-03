@@ -85,9 +85,9 @@ public final class SectionsContainer<Section> {
     var info: [Section] = []
     public var snapshot = NSDiffableDataSourceSnapshot<String, DataSourceItem>()
     
-    func addNewSection<T: Hashable>(_ items: [T], section: Section) {
+    func addNewSection<T: Hashable>(_ items: [T], section: Section, id: String?) {
         let className = String(describing: T.self)
-        var sectionId = className
+        var sectionId = className + (id ?? "")
         var counter = 0
         while ids.contains(sectionId) {
             counter += 1
@@ -116,7 +116,7 @@ public protocol Snapshot {
     
     var viewContainerInfo: Section { get }
     
-    func addSection<T: Hashable>(_ items: [T], section: Section)
+    func addSection<T: Hashable>(_ items: [T], section: Section, id: String?)
     
     func info(_ indexPath: IndexPath) -> (section: Section, item: AnyHashable)?
 }
@@ -125,16 +125,16 @@ public extension Snapshot {
     
     var numberOfItems: Int { data.snapshot.numberOfItems }
     
-    func add<T: View>(_ view: T) {
-        addSection([view.inContainer()])
+    func add<T: View>(_ view: T, id: String? = nil) {
+        addSection([view.inContainer()], id: id)
     }
     
-    func add(_ view: ViewContainer) {
-        addSection([view])
+    func add(_ view: ViewContainer, id: String? = nil) {
+        addSection([view], id: id)
     }
     
-    func addSection(_ views: [ViewContainer]) {
-        addSection(views, section: viewContainerInfo)
+    func addSection(_ views: [ViewContainer], id: String? = nil) {
+        addSection(views, section: viewContainerInfo, id: id)
     }
     
     func info(_ indexPath: IndexPath) -> (section: Section, item: AnyHashable)? {

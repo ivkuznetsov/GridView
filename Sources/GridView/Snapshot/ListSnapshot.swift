@@ -33,18 +33,19 @@ public final class ListSnapshot: Snapshot {
         }, reuseId: { $0.reuseId }, additions: .init(height: .automatic()))
     }
     
-    public func addSection<T: Hashable>(_ items: [T], section: S) {
-        data.addNewSection(items, section: section)
+    public func addSection<T: Hashable>(_ items: [T], section: S, id: String? = nil) {
+        data.addNewSection(items, section: section, id: id)
     }
     
     public func addSection<Item: Hashable, Content: SwiftUI.View>(_ items: [Item],
+                                                                  id: String? = nil,
                                                                   fill: @escaping (Item)-> Content,
                                                                   customize: ((Item, UITableViewCell)->())? = nil,
                                                                   firstSideActionFullSwipe: Bool = false,
                                                                   sideActions: ((Item)->[UIContextualAction])? = nil,
                                                                   move: Move? = nil,
                                                                   estimatedHeight: @escaping (Item)->CGFloat = { _ in 150 }) {
-        addSection(items, fill: fill,
+        addSection(items, id: id, fill: fill,
                    move: move,
                    additions: .init(height: .automatic(estimated: { estimatedHeight($0 as! Item) }),
                                     firstSideActionFullSwipe: firstSideActionFullSwipe,
@@ -53,13 +54,14 @@ public final class ListSnapshot: Snapshot {
     }
     
     public func addSection<Item: Hashable, Content: SwiftUI.View>(_ items: [Item],
+                                                                  id: String? = nil,
                                                                   fill: @escaping (Item)-> Content,
                                                                   customize: ((Item, UITableViewCell)->())? = nil,
                                                                   firstSideActionFullSwipe: Bool = false,
                                                                   sideActions: ((Item)->[UIContextualAction])? = nil,
                                                                   move: Move? = nil,
                                                                   height: @escaping (Item)->CGFloat) {
-        addSection(items, fill: fill,
+        addSection(items, id: id, fill: fill,
                    move: move,
                    additions: .init(height: .fixed({ height($0 as! Item) }),
                                     firstSideActionFullSwipe: firstSideActionFullSwipe,
@@ -74,6 +76,7 @@ public final class ListSnapshot: Snapshot {
     }
     
     private func addSection<Item: Hashable, Content: SwiftUI.View>(_ items: [Item],
+                                                                   id: String? = nil,
                                                                    fill: @escaping (Item)-> Content,
                                                                    move: Move?,
                                                                    additions: CellAdditions) {
@@ -86,7 +89,7 @@ public final class ListSnapshot: Snapshot {
                 cell.contentConfiguration = UIHostingConfigurationBackport { fill(item).ignoresSafeArea() }.margins(.all, 0)
             }
             additions.customize?(item, cell)
-        }, reuseId: { _ in reuseId }, additions: additions, move: move))
+        }, reuseId: { _ in reuseId }, additions: additions, move: move), id: id)
     }
 }
 #endif

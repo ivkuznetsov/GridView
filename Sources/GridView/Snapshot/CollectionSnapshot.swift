@@ -53,7 +53,7 @@ public final class CollectionSnapshot: Snapshot {
                                                      customize: { _, cell in customize?(cell) }))
     }
     
-    public func addSection<T: Hashable>(_ items: [T], section: S) {
+    public func addSection<T: Hashable>(_ items: [T], section: S, id: String? = nil) {
         if layout != section.additions.layout.behaviour {
             if data.info.isEmpty {
                 layout = section.additions.layout.behaviour
@@ -61,29 +61,33 @@ public final class CollectionSnapshot: Snapshot {
                 fatalError("You cannot mix different layouts in one snapshot")
             }
         }
-        data.addNewSection(items, section: section)
+        data.addNewSection(items, section: section, id: id)
     }
     
     public func addSection<Item: Hashable, Content: SwiftUI.View>(_ items: [Item],
+                                                                  id: String? = nil,
                                                                   fill: @escaping (Item)-> Content,
                                                                   customize: ((Item, CollectionCell)->())? = nil,
                                                                   prefetch: ((Item)->PrefetchCancel)? = nil,
                                                                   move: Move? = nil,
                                                                   layout: @escaping (NSCollectionLayoutEnvironment)->NSCollectionLayoutSection = { .grid($0) }) {
-        addSection(items, fill: fill, additions: .init(layout: .autosizing(layout),
-                                                       prefetch: prefetch == nil ? nil : { prefetch!($0 as! Item) },
-                                                       customize: customize == nil ? nil : { customize!($0 as! Item, $1) }), move: move)
+        addSection(items, id: id, fill: fill, additions: .init(layout: .autosizing(layout),
+                                                               prefetch: prefetch == nil ? nil : { prefetch!($0 as! Item) },
+                                                               customize: customize == nil ? nil : { customize!($0 as! Item, $1) }),
+                   move: move)
     }
     
     public func addSection<Item: Hashable, Content: SwiftUI.View>(_ items: [Item],
+                                                                  id: String? = nil,
                                                                   fill: @escaping (Item)-> Content,
                                                                   customize: ((Item, CollectionCell)->())? = nil,
                                                                   prefetch: ((Item)->PrefetchCancel)? = nil,
                                                                   move: Move? = nil,
                                                                   itemSize: @escaping (Item, _ width: CGFloat)->CGSize) {
-        addSection(items, fill: fill, additions: .init(layout: .perItem({ itemSize($0 as! Item, $1) }),
-                                                       prefetch: prefetch == nil ? nil : { prefetch!($0 as! Item) },
-                                                       customize: customize == nil ? nil : { customize!($0 as! Item, $1) }), move: move)
+        addSection(items, id: id, fill: fill, additions: .init(layout: .perItem({ itemSize($0 as! Item, $1) }),
+                                                               prefetch: prefetch == nil ? nil : { prefetch!($0 as! Item) },
+                                                               customize: customize == nil ? nil : { customize!($0 as! Item, $1) }),
+                   move: move)
     }
     
     public func add<T: View>(_ view: T, customize: @escaping (CollectionCell)->()) {
@@ -112,10 +116,12 @@ public final class CollectionSnapshot: Snapshot {
                    section: .init(ViewContainer.self, fill: { $1.contentConfiguration = $0.configuration },
                                   reuseId: { $0.reuseId },
                                   additions: .init(layout: .perItem({ _, width in staticSize(width) }),
-                                                   customize: { _, cell in customize?(cell) })))
+                                                   customize: { _, cell in customize?(cell) })),
+                   id: id)
     }
     
     private func addSection<Item: Hashable, Content: SwiftUI.View>(_ items: [Item],
+                                                                   id: String? = nil,
                                                                    fill: @escaping (Item)-> Content,
                                                                    customize: ((Item, CollectionCell)->())? = nil,
                                                                    additions: CellAdditions, move: Move?) {
@@ -128,6 +134,6 @@ public final class CollectionSnapshot: Snapshot {
                 cell.contentConfiguration = UIHostingConfigurationBackport { fill(item).ignoresSafeArea() }.margins(.all, 0)
             }
             additions.customize?(item, cell)
-        }, reuseId: { _ in reuseId }, additions: additions, move: move))
+        }, reuseId: { _ in reuseId }, additions: additions, move: move), id: id)
     }
 }
