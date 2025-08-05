@@ -134,7 +134,11 @@ public extension Snapshot {
     }
     
     func addSection(_ views: [ViewContainer], id: String? = nil) {
-        addSection(views, section: viewContainerInfo, id: id)
+        var resultId: String?
+        if let containerId = views.first?.id {
+            resultId = containerId + "\(id ?? "")"
+        }
+        addSection(views, section: viewContainerInfo, id: resultId)
     }
     
     func info(_ indexPath: IndexPath) -> (section: Section, item: AnyHashable)? {
