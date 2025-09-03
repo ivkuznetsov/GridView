@@ -41,7 +41,7 @@ public struct ListView: View, Equatable {
     }
 }
 
-public final class ListState: BaseState<UITableView>, UITableViewDelegate {
+public final class ListState: BaseState<UITableView>, UITableViewDelegate, UITableViewDragDelegate {
     
     public final class DataSource: UITableViewDiffableDataSource<String, DataSourceItem> {
         
@@ -100,7 +100,7 @@ public final class ListState: BaseState<UITableView>, UITableViewDelegate {
             cell.selectionStyle = .none
             if cell.selectedBackgroundView == nil {
                 let view = UIView()
-                view.backgroundColor = UIColor(white: 0.5, alpha: 0.15)
+                view.backgroundColor = .clear
                 cell.selectedBackgroundView = view
             }
             info!.fill(item, cell)
@@ -123,6 +123,8 @@ public final class ListState: BaseState<UITableView>, UITableViewDelegate {
         dataSource = .init(view: view, storage: storage)
         dataSource.defaultRowAnimation = .fade
         super.init(view: view)
+        view.dragDelegate = self
+        view.dragInteractionEnabled = true
     }
     
     public func set(_ snapshot: ListSnapshot, animated: Bool = false) async {
@@ -189,6 +191,14 @@ public final class ListState: BaseState<UITableView>, UITableViewDelegate {
                                                                                   numberOfItemsInSection: {
             dataSource.tableView(tableView, numberOfRowsInSection: $0)
         }) ?? proposedDestinationIndexPath
+    }
+    
+    public func tableView(_ tableView: UITableView, itemsForBeginning session: any UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
+        if let info = storage.snapshot.info(indexPath), info.section.move != nil {
+            let provider = NSItemProvider(object: String(describing: info.item) as NSString)
+            return [UIDragItem(itemProvider: provider)]
+        }
+        return []
     }
 }
 
