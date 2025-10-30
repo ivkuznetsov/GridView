@@ -34,6 +34,7 @@ public class BaseState<ScrollView: UIScrollView>: NSObject, PlatformScrollDelega
     
     public var didScroll: ((_ offset: CGPoint)->())?
     public var didDrag: ((_ dragging: Bool)->())?
+    public var didEndDecelerating: (()->())?
     public var didSet: (()->())?
     
     init(view: ScrollView) {
@@ -86,6 +87,7 @@ public class BaseState<ScrollView: UIScrollView>: NSObject, PlatformScrollDelega
                 endRefreshing()
             }
         }
+        didEndDecelerating?()
     }
 
     private func endRefreshing() {

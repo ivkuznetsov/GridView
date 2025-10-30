@@ -123,10 +123,16 @@ public final class GridState: BaseState<CollectionView>, PlatformCollectionDeleg
     public let storage = Storage()
     public let dataSource: DataSource
     public var configureLayout: ((PlatformLayout)->())?
+    public var didEndDisplayingCell: ((_ indexPath: IndexPath, _ offset: CGPoint)->())?
     
     public init() {
         #if os(iOS)
-        let view = CollectionView(frame: .zero, collectionViewLayout: UICollectionViewLayout())
+        let layout = CollectionViewFlowLayout()
+        layout.sectionInset = .zero
+        layout.minimumLineSpacing = 0
+        layout.minimumInteritemSpacing = 0
+        
+        let view = CollectionView(frame: .zero, collectionViewLayout: layout)
         #else
         let scrollView = NSScrollView()
         view = CollectionView(frame: .zero)
@@ -240,6 +246,10 @@ public final class GridState: BaseState<CollectionView>, PlatformCollectionDeleg
     }
     
     private var prefetchTokens: [IndexPath:PrefetchCancel] = [:]
+
+    public func collectionView(_ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        didEndDisplayingCell?(indexPath, collectionView.contentOffset)
+    }
     
     public func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
         prefetch(indexPaths)
