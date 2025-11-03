@@ -216,7 +216,10 @@ public final class GridState: BaseState<CollectionView>, PlatformCollectionDeleg
             let resultAnimation = animated && self.storage.snapshot.numberOfItems > 0
             self.view.transaction = .init(animated: resultAnimation)
             self.storage.update(snapshot)
-            self.reloadLayout(snapshot)
+            
+            if snapshot.numberOfItems > 0 {
+                self.reloadLayout(snapshot)
+            }
             
             await withCheckedContinuation { continuation in // async apply function is non isolated and posts main thread checker errors
                 self.dataSource.apply(snapshot.data.snapshot, animatingDifferences: resultAnimation) {
