@@ -83,6 +83,7 @@ public final class Section<Cell, Additions> {
 public final class SectionsContainer<Section> {
     var ids = Set<String>()
     var info: [Section] = []
+    var items: [String: [DataSourceItem]] = [:]
     public var snapshot = NSDiffableDataSourceSnapshot<String, DataSourceItem>()
     
     func addNewSection<T: Hashable>(_ items: [T], section: Section, id: String?) {
@@ -96,7 +97,10 @@ public final class SectionsContainer<Section> {
         ids.insert(sectionId)
         info.append(section)
         snapshot.appendSections([sectionId])
-        snapshot.appendItems(items.map { DataSourceItem($0) }, toSection: sectionId)
+        
+        let dataItems = items.map { DataSourceItem($0) }
+        self.items[sectionId] = dataItems
+        snapshot.appendItems(dataItems, toSection: sectionId)
     }
 }
 
@@ -144,7 +148,7 @@ public extension Snapshot {
     func info(_ indexPath: IndexPath) -> (section: Section, item: AnyHashable)? {
         if let section = data.info[safe: indexPath.section],
            let sectionId = data.snapshot.sectionIdentifiers[safe: indexPath.section],
-           let item = data.snapshot.itemIdentifiers(inSection: sectionId)[safe: indexPath.item] {
+           let item = data.items[sectionId]?[safe: indexPath.item] {
             return (section, item.base)
         }
         return nil
