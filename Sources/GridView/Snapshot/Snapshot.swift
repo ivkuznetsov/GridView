@@ -18,11 +18,14 @@ public struct Move {
     
     let destination: Destination
     let commit: (_ from: IndexPath, _ to: IndexPath)->()
+    let dragPreview: ((UIView)->UIDragPreviewParameters?)?
     
     public init(destination: Destination = .perSection,
-                commit: @escaping (_ from: IndexPath, _ to: IndexPath) -> Void) {
+                dragPreview: ((UIView)->UIDragPreviewParameters?)? = nil,
+                commit: @escaping (_ from: IndexPath, _ to: IndexPath) -> ()) {
         self.destination = destination
         self.commit = commit
+        self.dragPreview = dragPreview
     }
     
     public static func perSection<T: Hashable>(_ array: Binding<[T]>) -> Move {

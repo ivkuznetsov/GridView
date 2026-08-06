@@ -7,37 +7,68 @@ import Foundation
 import SwiftUI
 import UIKit
 
-public struct ListView: View, Equatable {
+public struct ListView: View {
     
-    public static func == (lhs: ListView, rhs: ListView) -> Bool {
-        lhs.reuseId == rhs.reuseId
+    struct EquatableContentView: View, Equatable {
+        
+        private struct ContentView: View {
+            
+            @StateObject private var state = ListState()
+            private let parameters: Parameters<ListSnapshot, ListState>
+            private let emptyState: EmptyState?
+            
+            public init(inputs: Inputs) {
+                let currentSnapshot = ListSnapshot()
+                inputs.snapshot(currentSnapshot)
+                parameters = .init(snapshot: currentSnapshot,
+                                   animateChanges: inputs.animateChanges,
+                                   setup: inputs.setup)
+                self.emptyState = inputs.emptyState
+            }
+            
+            var body: some View {
+                ZStack {
+                    ListTableView(state: state, parameters: parameters)
+                    emptyState?.viewIfNeeded(parameters.snapshot.numberOfItems)
+                }
+            }
+        }
+        
+        let inputs: Inputs
+        
+        static func == (lhs: EquatableContentView, rhs: EquatableContentView) -> Bool {
+            lhs.inputs.reuseId == rhs.inputs.reuseId
+        }
+        
+        var body: some View {
+            ContentView(inputs: inputs)
+        }
     }
     
-    @StateObject private var state = ListState()
+    struct Inputs {
+        let reuseId: String
+        let setup: ((ListState)->())?
+        let emptyState: EmptyState?
+        let animateChanges: Bool
+        let snapshot: (ListSnapshot)->()
+    }
     
-    private let reuseId: String
-    private let parameters: Parameters<ListSnapshot, ListState>
-    private let emptyState: EmptyState?
+    let inputs: Inputs
     
     public init(reuseId: String = UUID().uuidString,
                 setup: ((ListState)->())? = nil,
                 emptyState: EmptyState? = nil,
                 animateChanges: Bool = true,
-                snapshot: (ListSnapshot)->()) {
-        let currentSnapshot = ListSnapshot()
-        snapshot(currentSnapshot)
-        parameters = .init(snapshot: currentSnapshot,
-                           animateChanges: animateChanges,
-                           setup: setup)
-        self.emptyState = emptyState
-        self.reuseId = reuseId
+                snapshot: @escaping (ListSnapshot)->()) {
+        inputs = .init(reuseId: reuseId,
+                       setup: setup,
+                       emptyState: emptyState,
+                       animateChanges: animateChanges,
+                       snapshot: snapshot)
     }
     
     public var body: some View {
-        ZStack {
-            ListTableView(state: state, parameters: parameters)
-            emptyState?.viewIfNeeded(parameters.snapshot.numberOfItems)
-        }
+        EquatableView(content: EquatableContentView(inputs: inputs))
     }
 }
 
@@ -199,6 +230,16 @@ public final class ListState: BaseState<UITableView>, UITableViewDelegate, UITab
             return [UIDragItem(itemProvider: provider)]
         }
         return []
+    }
+    
+    public func tableView(_ tableView: UITableView, dragPreviewParametersForRowAt indexPath: IndexPath) -> UIDragPreviewParameters? {
+        
+        if let info = storage.snapshot.info(indexPath),
+           let preview = info.section.move?.dragPreview,
+           let cell = tableView.cellForRow(at: indexPath) {
+            return preview(cell)
+        }
+        return nil
     }
 }
 
