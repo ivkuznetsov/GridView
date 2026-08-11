@@ -74,9 +74,10 @@ public final class CollectionView: PlatformCollectionView {
     
     public override var contentSize: CGSize {
         didSet {
-            if attachedContentToTheBottom, transaction?.animated == false && oldValue.height != contentSize.height {
-                let resultOffset = contentOffset.y + (contentSize.height - oldValue.height)
-                let offset = CGPoint(x: contentOffset.x, y: max(0, min(resultOffset, contentSize.height - frame.size.height)))
+            let fullContentHeight = contentSize.height + contentInset.bottom
+            if attachedContentToTheBottom, transaction?.animated == false && oldValue.height != fullContentHeight {
+                let resultOffset = contentOffset.y + (fullContentHeight - oldValue.height)
+                let offset = CGPoint(x: contentOffset.x, y: max(0, min(resultOffset, fullContentHeight - frame.size.height)))
                 setContentOffset(offset, animated: false)
             }
         }
@@ -87,9 +88,10 @@ public final class CollectionView: PlatformCollectionView {
             let offset = oldValue.height - frame.height
             
             if offset > 0 {
+                let fullContentHeight = contentSize.height + contentInset.bottom
                 var contentOffset = self.contentOffset
                 contentOffset.y += offset
-                contentOffset.y = min(contentOffset.y, max(0, contentSize.height - frame.size.height))
+                contentOffset.y = min(contentOffset.y, max(0, fullContentHeight - frame.size.height))
                 self.contentOffset = contentOffset
             }
         }
