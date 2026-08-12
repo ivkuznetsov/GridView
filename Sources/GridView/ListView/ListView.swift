@@ -158,6 +158,12 @@ public final class ListState: BaseState<UITableView>, UITableViewDelegate, UITab
         view.dragInteractionEnabled = true
     }
     
+    public func scrollTo(sectionId: String, animated: Bool = false) {
+        if let sectionIndex = storage.snapshot.data.snapshot.sectionIdentifiers.firstIndex(where: { $0.hasSuffix(sectionId) }) {
+            view.scrollToRow(at: IndexPath(row: 0, section: sectionIndex), at: .middle, animated: animated)
+        }
+    }
+    
     public func set(_ snapshot: ListSnapshot, animated: Bool = false) async {
         try? await updateSync.run { @MainActor in
             let oldCount = self.storage.snapshot.numberOfItems
